@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="icon"
+      class="title-img"
+      type="image/png"
+      href="/images/b1-removebg-preview.png"
+    />
+    <title>Website Analyzer</title>
+    <!-- Font Awesome CDN for icons -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .button-container {
+        margin-top: 20px;
+      }
+      #v1 {
+        margin-right: 30px;
+      }
+      .form-cnt {
+        margin-top: 30px;
+        margin-bottom: 150px;
+      }
+      .bot-container {
+        text-align: end;
+      }
+      .v1 {
+        margin-top: 100px;
+      }
+
+      #chatModal .modal-content {
+        position: fixed;
+    width: 30%;
+    height: 70vh;
+    left: 0;
+    margin-left: 5%;
+      }
+
+      #chatModal .modal-body {
+        overflow-y: auto;
+        max-height: 60vh;
+      }
+
+      #chatModal .chat-modal-bot {
+        width: 35px;
+      }
+
+      #chatModal .modal-footer {
+        justify-content: flex-start !important;
+      }
+
+      #chatModal #userInput {
+        width: 70%;
+        font-size: small;
+      }
+
+      #chatModal #send-button {
+        border-radius: 50%;
+        width: 10%;
+        height: 40px;
+      }
+      #modal-con {
+        right: 0;
+        bottom: 0;
+        margin-bottom: 50px;
+        margin-right: 100px;
+      }
+      #modal-bdy {
+        padding: 0% !important;
+      }
+      .list-group {
+        --bs-list-group-border-color: #e2e3e4 !important; 
+      }
+      .list-group-item {
+        border: var(--bs-list-group-border-width) solid #ffffff !important; 
+      }
+      .bot-img {
+        width: 60%;
+      }
+      * {
+        font-family: "Quicksand", serif;
+      }
+
+      .sidebar {
+        width: 60px;
+        height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        position: fixed;
+        left: 0;
+        top: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 20px;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+      }
+
+      .sidebar-item {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        padding: 15px 0;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+
+      .sidebar-item:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .sidebar-item i {
+        font-size: 18px;
+        color: white;
+        transition: transform 0.3s ease;
+      }
+
+      .sidebar-item:hover i {
+        transform: scale(1.2);
+      }
+
+      .meter-container {
+        position: relative;
+        bottom: 30;
+        width: 200px;
+
+        right: 0;
+        top: 0;
+        height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+      }
+
+      .main-content {
+        margin-left: 60px;
+        margin-right: 200px;
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      .performance-card {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 15px;
+      }
+
+      .metadata-card {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 10px;
+      }
+
+      .metadata-item {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+      }
+
+      .suggestion-box {
+        background-color: #b4fa8e;
+        border-radius: 5px;
+        padding: 10px;
+        margin-top: 10px;
+      }
+
+      .score-display {
+        font-size: 2rem;
+        font-weight: bold;
+      }
+
+      .score-good {
+        color: #48bb78;
+      }
+
+      .score-warning {
+        color: #ecc94b;
+      }
+
+      .score-poor {
+        color: #f56565;
+      }
+
+      .clickable {
+        cursor: pointer;
+        color: #0d6efd;
+        text-decoration: underline;
+      }
+     
+      .meter-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: start;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        width: 200px;
+        position: fixed;
+        right: 0;
+        top: 0;
+        height: 100vh;
+        padding: 20px;
+        box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+      }
+      .progress-circle {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+       
+      }
+      .progress-text {
+        position: absolute;
+        font-weight: bold;
+        color: white;
+      }
+      circle {
+        fill: none;
+      }
+      circle.bg {
+        stroke: rgba(255, 255, 255, 0.2);
+      }
+      circle.progress {
+        stroke: white;
+        stroke-linecap: round;
+        stroke-dasharray: 314.159; 
+        stroke-dashoffset: 314.159;
+        transform: rotate(-90deg);
+        transform-origin: center;
+        transition: stroke-dashoffset 1s ease-in-out;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 992px) {
+        .meter-container {
+          width: 150px;
+        }
+
+        .main-content {
+          margin-right: 150px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .meter-container {
+          display: none;
+        }
+
+        .main-content {
+          margin-right: 0;
+        }
+      }
+      .circles {
+        position: relative;
+        bottom: 25px;
+        margin-top: 15px;
+      }
+      .unique-spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0, 0, 0, 0.3);
+        border-radius: 50%;
+        border-top-color: #000;
+        animation: spin 1s linear infinite;
+      }
+
+      .score {
+        display: none;
+        font-size: 16px;
+        margin-top: 10px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body style="background-color: #dff5d3">
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-item">
+        <i class="fas fa-home" onclick="window.location.href='/'"></i>
+      </div>
+      <div class="sidebar-item" data-bs-toggle="modal" data-bs-target="#adminModal">
+        <i class="fas fa-th-large"></i>
+    </div>  
+      <div class="sidebar-item">
+        <i class="fas fa-user"></i>
+      </div>
+      <div class="sidebar-item">
+        <img
+          src="/images/b1-removebg-preview.png"
+          onmouseover="this.src='/images/b2-removebg-preview.png'"
+          onmouseout="this.src='/images/b1-removebg-preview.png'"
+          class="bot-img img-fluid"
+          alt="Image Not Found"
+          data-bs-toggle="modal"
+          data-bs-target="#chatModal"
+        />
+      </div>
+
+      <div class="sidebar-item">
+        <i class="fas fa-download download-btn" id="support-to-download"></i>
+      </div>
+    </div>
+
+    <div class="content" id="content">
+      <!-- Main Content Area -->
+      <div class="main-content">
+        <div class="container-fluid p-0">
+          <% if (typeof error !== 'undefined' && error) { %>
+          <div class="alert alert-danger rounded mb-4"><%= error %></div>
+          <!-- Back Button for Error State -->
+          <div class="mt-4">
+            <button
+              class="btn btn-primary"
+              onclick="showChallengeModal('text', 'Try again challenge')"
+            >
+              Try Again
+            </button>
+          </div>
+          <% } else if (typeof url !== 'undefined' && url) { %>
+
+          <!-- Overall Performance Score -->
+          <% if (typeof performanceScore !== 'undefined') { %>
+          <div class="performance-card">
+            <div>
+              <h6 class="mt-1 mb-1" data-attribute="<%= url %>">
+                Analysis Results for <%= url %>
+              </h6>
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Overall Performance Score</h5>
+                <div
+                  class="score-display <%= performanceScore >= 90 ? 'score-good' : performanceScore >= 50 ? 'score-warning' : 'score-poor' %>"
+                >
+                  <%= performanceScore.toFixed(1) %>%
+                </div>
+              </div>
+              <% if (typeof suggestions !== 'undefined' &&
+              suggestions.performance) { %>
+              <div class="suggestion-box">
+                <p class="fw-bold mb-1">Suggestions</p>
+                <p class="mb-0"><%= suggestions.performance %></p>
+              </div>
+              <% } %>
+            </div>
+          </div>
+          <% } %>
+
+          <!-- Additional score sections can be added here -->
+          <% if (typeof loadingSpeed !== 'undefined') { %>
+          <div class="performance-card">
+            <h5 class="mb-3">Loading Speed</h5>
+            <div class="progress mb-3">
+              <div
+                class="progress-bar <%= loadingSpeed >= 80 ? 'bg-success' : loadingSpeed >= 50 ? 'bg-warning' : 'bg-danger' %>"
+                role="progressbar"
+                style="width: <%= loadingSpeed %>%"
+                aria-valuenow="<%= loadingSpeed %>"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <%= loadingSpeed %>%
+              </div>
+            </div>
+
+            <% if (typeof suggestions !== 'undefined' &&
+            suggestions.loadingSpeed) { %>
+            <p class="mb-0"><%= suggestions.loadingSpeed %></p>
+            <% } %>
+          </div>
+          <% } %> <% if (typeof mobileFriendly !== 'undefined') { %>
+          <div class="performance-card">
+            <h5 class="mb-3">Mobile Friendliness</h5>
+            <div class="progress mb-3">
+              <div
+                class="progress-bar <%= mobileFriendly >= 80 ? 'bg-success' : mobileFriendly >= 50 ? 'bg-warning' : 'bg-danger' %>"
+                role="progressbar"
+                style="width: <%= mobileFriendly %>%"
+                aria-valuenow="<%= mobileFriendly %>"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <%= mobileFriendly %>
+              </div>
+            </div>
+
+            <% if (typeof suggestions !== 'undefined' &&
+            suggestions.mobileFriendly) { %>
+            <p class="mb-0"><%= suggestions.mobileFriendly %></p>
+            <% } %>
+          </div>
+          <% } %>
+
+          <div id="accordion0" class="mb-2">
+            <div class="card">
+              <div
+                class="card-header d-flex justify-content-between align-items-center"
+                type="button"
+                data-toggle="collapse"
+                data-target="#collapseZero"
+                aria-expanded="false"
+                aria-controls=""
+                id="headingThree"
+              >
+                <h6 class="mb-0 text-left">Website Metadata</h6>
+                <button class="btn arrow-btn">
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
+
+              <div
+                id="collapseZero"
+                class="collapse"
+                aria-labelledby="headingThree"
+                data-parent="#accordion3"
+              >
+                <!-- Metadata Section -->
+                <% if (typeof metadata !== 'undefined') { %>
+                <div class="metadata-card">
+                  <div class="row">
+                    <!-- Basic Metadata Column -->
+                    <div class="col-md-6 mb-3">
+                      <h6 class="mb-2">Basic Metadata</h6>
+                      <div class="metadata-item">
+                        <p class="fw-medium mb-1" >Title</p>
+                        <p class="mb-0 text-secondary" id="titleElement" >
+                          <%= metadata.title || 'Not found' %>
+                        </p>
+                      </div>
+
+                      <div class="metadata-item">
+                        <p class="fw-medium mb-1">Description</p>
+                        <p class="mb-0 text-secondary">
+                          <%= metadata.description || 'Not found' %>
+                        </p>
+                      </div>
+
+                      <div class="metadata-item">
+                        <p class="fw-medium mb-1">Keywords</p>
+                        <p class="mb-0 text-secondary">
+                          <%= metadata.keywords || 'Not found' %>
+                        </p>
+                      </div>
+
+                      <div class="metadata-item">
+                        <p class="fw-medium mb-1">Author</p>
+                        <p class="mb-0 text-secondary">
+                          <%= metadata.author || 'Not found' %>
+                        </p>
+                      </div>
+
+                      <div class="metadata-item">
+                        <p class="fw-medium mb-1">Robots</p>
+                        <p class="mb-0 text-secondary">
+                          <%= metadata.robots || 'Not found' %>
+                        </p>
+                      </div>
+                    </div>
+
+                    <!-- Open Graph Metadata Column -->
+                    <div class="col-md-6">
+                      <h6 class="mb-2">Open Graph Metadata</h6>
+                      <div class="metadata-item">
+                        <p class="fw-medium mb-1">OG Title</p>
+                        <p class="mb-0 text-secondary">
+                          <%= metadata.ogTitle || 'Not found' %>
+                        </p>
+                      </div>
+
+                      <div class="metadata-item">
+                        <p class="fw-medium mb-1">OG Description</p>
+                        <p class="mb-0 text-secondary">
+                          <%= metadata.ogDescription || 'Not found' %>
+                        </p>
+                      </div>
+
+                      <div class="metadata-item">
+                        <p class="fw-medium mb-1">OG URL</p>
+                        <p class="mb-0 text-secondary">
+                          <%= metadata.ogUrl || 'Not found' %>
+                        </p>
+                      </div>
+
+                      <div class="metadata-item">
+                        <p class="fw-medium mb-1">OG Image</p>
+                        <p
+                          class="mb-0 text-secondary clickable"
+                          onclick="showChallengeModal('image', '<%= metadata.ogImage %>')"
+                        >
+                          <%= metadata.ogImage || 'Not found' %>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <% } %> <% } else { %>
+                <div class="performance-card text-center">
+                  <h2>No URL Provided</h2>
+                  <p>Please enter a URL to analyze.</p>
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+          <div id="accordion1" class="mb-2">
+            <div class="card">
+              <div
+                class="card-header d-flex justify-content-between align-items-center"
+                type="button"
+                data-toggle="collapse"
+                data-target="#collapseOne"
+                aria-expanded="true"
+                aria-controls="collapseOne"
+                id="headingOne"
+              >
+                <h6 class="mb-0 text-left">Performance Metrics</h6>
+                <button class="btn arrow-btn">
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
+
+              <div
+                id="collapseOne"
+                class="collapse"
+                aria-labelledby="headingOne"
+                data-parent="#accordion1"
+              >
+                <% if (typeof metrics !== 'undefined') { %>
+                <div class="bg-white rounded shadow p-4">
+                  <div class="row">
+                    <% if (metrics.fcp) { %>
+                    <div class="col-4 d-flex">
+                      <div
+                        class="border rounded p-3 text-center w-100 d-flex flex-column justify-content-between"
+                      >
+                        <p class="fw-medium">First Contentful Paint</p>
+                        <span
+                          id="fcp-score"
+                          data-score="<%= String(Math.floor(metrics.fcp.score)).substring(0,2) %>"
+                          style="display: none"
+                        >
+                          <%=
+                          String(Math.floor(metrics.fcp.score)).substring(0,2)
+                          %>
+                        </span>
+
+                        <div
+                          class="h2 fw-bold <%= metrics.fcp.score >= 90 ? 'text-success' : metrics.fcp.score >= 50 ? 'text-warning' : 'text-danger' %>"
+                        >
+                          <%= metrics.fcp.value %>
+                        </div>
+                        <% if (suggestions && suggestions.fcp) { %>
+                        <p class="small mt-2"><%= suggestions.fcp %></p>
+                        <% } %>
+                      </div>
+                    </div>
+                    <% } %> <% if (metrics.si) { %>
+                    <div class="col-4 d-flex">
+                      <div
+                        class="border rounded p-3 text-center w-100 d-flex flex-column justify-content-between"
+                      >
+                        <p class="fw-medium">Speed Index</p>
+                        <span
+                          id="si-score"
+                          data-score="<%= String(Math.floor(metrics.si.score)).substring(0,2) %>"
+                          style="display: none"
+                        >
+                          <%=
+                          String(Math.floor(metrics.si.score)).substring(0,2) %>
+                        </span>
+
+                        <div
+                          class="h2 fw-bold <%= metrics.si.score >= 90 ? 'text-success' : metrics.si.score >= 50 ? 'text-warning' : 'text-danger' %>"
+                        >
+                          <%= metrics.si.value %>
+                        </div>
+                        <% if (suggestions && suggestions.si) { %>
+                        <p class="small mt-2"><%= suggestions.si %></p>
+                        <% } %>
+                      </div>
+                    </div>
+                    <% } %> <% if (metrics.tti) { %>
+                    <div class="col-4 d-flex">
+                      <div
+                        class="border rounded p-3 text-center w-100 d-flex flex-column justify-content-between"
+                      >
+                        <p class="fw-medium">Time to Interactive</p>
+                        <span
+                          id="tti-score"
+                          data-score="<%= String(Math.floor(metrics.tti.score)).substring(0,2) %>"
+                          style="display: none"
+                        >
+                          <%=
+                          String(Math.floor(metrics.tti.score)).substring(0,2)
+                          %>
+                        </span>
+
+                        <div
+                          class="h2 fw-bold <%= metrics.tti.score >= 90 ? 'text-success' : metrics.tti.score >= 50 ? 'text-warning' : 'text-danger' %>"
+                        >
+                          <%= metrics.tti.value %>
+                        </div>
+                        <% if (suggestions && suggestions.tti) { %>
+                        <p class="small mt-2"><%= suggestions.tti %></p>
+                        <% } %>
+                      </div>
+                    </div>
+                    <% } %>
+                  </div>
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+
+          <div id="accordion2" class="mb-2">
+            <div class="card">
+              <div
+                class="card-header d-flex justify-content-between align-items-center"
+                type="button"
+                data-toggle="collapse"
+                data-target="#collapseTwo"
+                aria-expanded="false"
+                aria-controls="collapseTwo"
+                id="headingTwo"
+              >
+                <h6 class="mb-0 text-left">
+                  Image Analysis: Formats/Responsive Images
+                </h6>
+                <button class="btn arrow-btn">
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
+
+              <div
+                id="collapseTwo"
+                class="collapse"
+                aria-labelledby="headingTwo"
+                data-parent="#accordion2"
+              >
+                <!-- Image Audits -->
+                <% if (typeof imageAudits !== 'undefined') { %>
+                <div class="bg-white rounded shadow p-4 mb-4">
+                  <div class="space-y-4">
+                    <% Object.entries(imageAudits).forEach(([key, audit]) => {
+                    %>
+                    <div class="border-bottom pb-4 mb-4 last-border-0">
+                      <p class="fw-medium mb-2 ps-2">
+                        <%= key.split('-').map(word =>
+                        word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+                        %>
+                      </p>
+
+                      <% if (audit.issues && audit.issues.length > 0) { %>
+                      <div class="table-responsive">
+                        <table class="table table-hover mt-2">
+                          <thead>
+                            <tr>
+                              <th class="px-4 py-2 text-start fs-6">URL</th>
+                              <th class="px-4 py-2 text-end fs-6">
+                                Wasted Bytes
+                              </th>
+                              <th class="px-4 py-2 text-end fs-6">
+                                Total Bytes
+                              </th>
+                              <th class="px-4 py-2 text-end fs-6">
+                                Potential Savings
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <% audit.issues.forEach(issue => { %>
+                            <tr>
+                              <td
+                                class="px-4 py-2 fs-6"
+                                style="
+                                  word-wrap: break-word;
+                                  word-break: break-word;
+                                  overflow-wrap: break-word;
+                                  white-space: normal;
+                                  max-width: 200px;
+                                "
+                              >
+                                <span
+                                  class="clickable"
+                                  onclick="showChallengeModal('<%= issue.url %>')"
+                                >
+                                  <%= issue.url %>
+                                </span>
+                              </td>
+
+                              <td class="px-4 py-2 text-end fs-6">
+                                <%= (issue.wastedBytes / 1024).toFixed(2) %> KB
+                              </td>
+                              <td class="px-4 py-2 text-end fs-6">
+                                <%= (issue.totalBytes / 1024).toFixed(2) %> KB
+                              </td>
+                              <td class="px-4 py-2 text-end fs-6">
+                                <%= issue.potentialSavings %>
+                              </td>
+                            </tr>
+                            <% }); %>
+                          </tbody>
+                        </table>
+                      </div>
+                      <% } else { %>
+                      <p class="text-success">No issues found.</p>
+                      <% } %>
+
+                      <div class="suggestion-box">
+                        <% if (audit.suggestions && audit.suggestions.length >
+                        0) { %>
+                        <div class="mt-4">
+                          <h6 class="fw-medium mb-2">Suggestions:</h6>
+                          <ul class="ps-4 mb-0">
+                            <% audit.suggestions.forEach(suggestion => { %>
+                            <li class="text-secondary"><%= suggestion %></li>
+                            <% }); %>
+                          </ul>
+                        </div>
+                        <% } %>
+                      </div>
+                    </div>
+                    <% }); %>
+                  </div>
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+
+          <div id="accordion3" class="mb-2">
+            <div class="card">
+              <div
+                class="card-header d-flex justify-content-between align-items-center"
+                type="button"
+                data-toggle="collapse"
+                data-target="#collapseThree"
+                aria-expanded="false"
+                aria-controls="collapseThree"
+                id="headingThree"
+              >
+                <h6 class="mb-0 text-left">Images Without alt Attributes</h6>
+                <button class="btn arrow-btn">
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
+
+              <div
+                id="collapseThree"
+                class="collapse"
+                aria-labelledby="headingThree"
+                data-parent="#accordion3"
+              >
+                <!-- Missing Alt Images Section -->
+                <% if (typeof missingAltImages !== 'undefined') { %>
+                <div class="bg-white rounded shadow p-4 mb-4">
+                  <% if (missingAltImages.length === 0) { %>
+                  <p class="text-success fw-medium">
+                    ✅ All images have alt attributes.
+                  </p>
+                  <% } else { %>
+                  <p class="text-danger fw-medium">
+                    ❌ Found <%= missingAltImages.length %> images without alt
+                    attributes.
+                  </p>
+
+                  <div class="mt-4 table-responsive">
+                    <table class="table table-hover">
+                      <thead>
+                        <tr>
+                          <th class="px-4 py-2 text-start">Attributes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% missingAltImages.forEach((img, index) => { %>
+                        <tr>
+                          <td class="px-4 py-2">
+                            <pre class="mb-0">
+<%= JSON.stringify(img, null, 2) %></pre
+                            >
+                          </td>
+                        </tr>
+                        <% }); %>
+                      </tbody>
+                    </table>
+                  </div>
+                  <% } %>
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+
+          <div id="accordion4" class="mb-2">
+            <div class="card">
+              <div
+                class="card-header d-flex justify-content-between align-items-center"
+                type="button"
+                data-toggle="collapse"
+                data-target="#collapseFour"
+                aria-expanded="false"
+                aria-controls="collapseFour"
+                id="headingFour"
+              >
+                <h6 class="mb-0 text-left">Text and Event Analysis</h6>
+                <button class="btn arrow-btn">
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
+
+              <div
+                id="collapseFour"
+                class="collapse"
+                aria-labelledby="headingFour"
+                data-parent="#accordion4"
+              >
+                <!-- Text Analysis -->
+                <% if (typeof puppeteerResult !== 'undefined') { %>
+                <div class="bg-white rounded shadow p-4 mb-4">
+                  <pre class="bg-light p-3 rounded mb-3">
+<%= puppeteerResult %></pre
+                  >
+                  <% if (puppeteerResult.includes('onclick') ||
+                  puppeteerResult.includes('href')) { %>
+                  <div class="suggestion-box alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Giving onclick/href is not advisable for text
+                  </div>
+                  <% } else { %>
+                  <div id="me" class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle me-2"></i>
+                    There is no text with onclick or href
+                  </div>
+                  <% } %>
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+          <div id="accordion5" class="mb-2">
+            <div class="card">
+              <div
+                class="card-header d-flex justify-content-between align-items-center"
+                type="button"
+                data-toggle="collapse"
+                data-target="#collapseFive"
+                aria-expanded="false"
+                aria-controls="collapseFour"
+                id="headingFour"
+              >
+                <h6 class="mb-0 text-left">Competitor Analysis</h6>
+                <button class="btn arrow-btn">
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
+
+              <div
+                id="collapseFive"
+                class="collapse"
+                aria-labelledby="headingFour"
+                data-parent="#accordion4"
+              >
+                <% if (typeof responseText !== 'undefined' &&
+                responseText.trim().length > 0) { %>
+                <div class="bg-white p-4">
+                  <% const urlRegex = /(https?:\/\/[^\s\n]+)/g; let competitors
+                  = []; try { const matches = responseText.match(urlRegex) ||
+                  []; competitors = [...new Set(matches.map(url =>
+                  url.trim().replace(/[.,;:]$/, '').replace(/\[|\]|\(.*?\)/g,
+                  '')))].slice(0, 10); } catch (e) { competitors = []; } %> <%
+                  if (competitors.length > 0) { %>
+                  <div class="competitor-container">
+                    <% let index = 0; %> <% competitors.forEach((url) => { %>
+                    <div
+                      class="d-flex justify-content-between align-items-center py-2 border-bottom"
+                    >
+                      <a
+                        href="<%= url %>"
+                        target="_blank"
+                        class="text-primary competitor-link"
+                        ><%= url %></a
+                      >
+                      <div class="d-flex align-items-center">
+                        <span id="responseBox<%= index %>" class="me-2"></span>
+                        <button
+                          class="btn btn-sm btn-outline-primary competitor-checkscore"
+                          onclick="sendUrlToBackend('<%- url %>', <%= index %>)"
+                          id="competitor-checkscore" 
+                        >
+                          Check Score
+                        </button>
+                      </div>
+                    </div>
+                    <% index++; %> <% }); %> <% } else { %>
+                    <p class="text-muted font-italic">
+                      No competitor URLs were found in the analysis. Please
+                      check the complete analysis text below.
+                    </p>
+                    <% } %>
+                  </div>
+                  <% } else { %>
+                  <div class="card-body">
+                    <p class="text-muted">
+                      No analysis text available because of traffic with AI.
+                    </p>
+                  </div>  
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Meter Container -->
+    <div class="meter-container">
+      <div class="row circles">
+        <div class="col-12">
+          <div class="row text-center align-items-center">
+            <span class="text-white">First Contentful Paint</span>
+            <div class="progress-circle">
+              <svg width="70" height="70">
+                <circle
+                  class="bg"
+                  cx="35"
+                  cy="35"
+                  r="30"
+                  stroke-width="6"
+                ></circle>
+                <circle
+                  class="progress"
+                  cx="35"
+                  cy="35"
+                  r="30"
+                  stroke-width="6"
+                ></circle>
+              </svg>
+              <div class="progress-text">0%</div>
+            </div>
+            <span id="hidden" class="f-2 mb-4"></span>
+          </div>
+
+          <div class="row text-center align-items-center">
+            <span class="text-white">Speed Index</span>
+            <div class="progress-circle">
+              <svg width="70" height="70">
+                <circle
+                  class="bg"
+                  cx="35"
+                  cy="35"
+                  r="30"
+                  stroke-width="6"
+                ></circle>
+                <circle
+                  class="progress"
+                  cx="35"
+                  cy="35"
+                  r="30"
+                  stroke-width="6"
+                ></circle>
+              </svg>
+              <div class="progress-text">0%</div>
+            </div>
+            <span id="hidden-1" class="f-2 mb-4"></span>
+          </div>
+
+          <div class="row text-center align-items-center">
+            <span class="text-white">Time to Interactive</span>
+            <div class="progress-circle">
+              <svg width="70" height="70">
+                <circle
+                  class="bg"
+                  cx="35"
+                  cy="35"
+                  r="30"
+                  stroke-width="6"
+                ></circle>
+                <circle
+                  class="progress"
+                  cx="35"
+                  cy="35"
+                  r="30"
+                  stroke-width="6"
+                ></circle>
+              </svg>
+              <div class="progress-text">0%</div>
+            </div>
+            <span id="hidden-2" class="f-2"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Centered Dialog Box -->
+    <dialog id="loadingDialog">
+      <div class="dialog-content">
+        <p>⏳ Generating PDF... Please wait.</p>
+        <div class="spinner"></div>
+      </div>
+    </dialog>
+
+    <!-- Chat Modal -->
+    <div
+      class="modal"
+      id="chatModal"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+      tabindex="-1"
+      aria-labelledby="chatModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content" id="modal-con">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="chatModalLabel">
+              Website analyzer
+            </h1>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body" id="modal-bdy">
+            <ul class="list-group list-group-flush" id="chatContainer">
+              <li class="list-group-item"></li>
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <img
+              src="/images/b1-removebg-preview.png"
+              onmouseover="this.src='/images/b2-removebg-preview.png'"
+              onmouseout="this.src='/images/b1-removebg-preview.png'"
+              class="chat-modal-bot"
+            />
+            <input
+              type="text"
+              class="form-control"
+              id="userInput"
+              placeholder="Kindly provide your queries here.."
+            />
+            <input
+              type="submit"
+              class="btn btn-outline-primary"
+              id="send-button"
+              onclick="sendMessage()"
+              value=">"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Modal Structure -->
+    <div
+      class="modal"
+      id="imageModal"
+      tabindex="-1"
+      aria-labelledby="modalTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalTitle">Image Preview</h5>
+            <button
+              type="button"
+              class="btn-close"
+              onclick="closeModal()"
+            ></button>
+          </div>
+          <div class="modal-body text-center">
+            <img
+              id="modalImage"
+              src=""
+              alt="Image"
+              class="img-fluid"
+              style="max-height: 400px"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+<!-- Admin Modal -->
+<div class="modal fade" id="adminModal" tabindex="-1" aria-labelledby="adminModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="adminModalLabel">Admin Login</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+              <form onsubmit="return adminLogin();">
+                  <div class="mb-3">
+                      <label for="username" class="form-label">Username</label>
+                      <input type="text" id="username" class="form-control" required>
+                  </div>
+                  <div class="mb-3">
+                      <label for="password" class="form-label">Password</label>
+                      <input type="password" id="password" class="form-control" required>
+                  </div>
+                  <button type="submit" class="btn btn-outline-primary w-100">Login</button>
+              </form>
+          </div>
+      </div>
+  </div>
+</div>
+  
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js"></script>
+    <script>
+      
+    function adminLogin() {
+    let username = document.getElementById("username").value.trim();
+    let password = document.getElementById("password").value.trim();
+
+    console.log("Entered Username:", username);
+    console.log("Entered Password:", password);
+
+    if (username === "user" && password === "user") {
+      window.location.href = "/view-data";
+      return false; 
+    } else {
+      alert("Invalid username or password!");
+      return false;
+    }
+  }
+
+      
+
+      function sendMessage() {
+        event.preventDefault(); 
+
+        let userInput = document.getElementById("userInput").value.trim();
+        if (!userInput) {
+          alert("Please enter a message!");
+          return;
+        }
+
+        let chatContainer = document.getElementById("chatContainer");
+
+       
+        let userMessageLi = document.createElement("li");
+        userMessageLi.className = "list-group-item ms-auto";
+        userMessageLi.textContent = userInput;
+        chatContainer.appendChild(userMessageLi);
+
+        
+        fetch("/receive-msg", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userInput }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            let serverMessageLi = document.createElement("li");
+            serverMessageLi.className = "list-group-item receive-hidden";
+            serverMessageLi.textContent = data.reply;
+            chatContainer.appendChild(serverMessageLi);
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert("An error occurred. Please try again.");
+          });
+
+       
+        document.getElementById("userInput").value = "";
+      }
+
+      
+      async function generatePDF() {
+  const h6Element = document.querySelector("h6[data-attribute]");
+  const content = document.getElementById("content");
+  const dialog = document.getElementById("loadingDialog");
+
+  // Validate elements
+  if (!h6Element || !content || !dialog) {
+    console.error("Required elements not found!");
+    return;
+  }
+
+  const fileName = h6Element.getAttribute("data-attribute") || "document";
+  console.log("File Name:", fileName);
+
+  const { jsPDF } = window.jspdf;
+  dialog.showModal();
+
+  try {
+    const canvas = await html2canvas(content, { scale: 1.5, useCORS: true });
+    const pdf = new jsPDF("p", "mm", "a4");
+    const imgWidth = 190;
+    const pageHeight = 277;
+    const footerSpace = 20;
+    const usableHeight = pageHeight - footerSpace;
+
+    let position = 10;
+    let remainingHeight = canvas.height;
+    const pageCanvas = document.createElement("canvas");
+    const pageCtx = pageCanvas.getContext("2d");
+    pageCanvas.width = canvas.width;
+
+    let pageNumber = 1;
+    const now = new Date();
+    const formattedDate = now.toLocaleString();
+
+    while (remainingHeight > 0) {
+      const canvasHeight = Math.min(
+        usableHeight * (canvas.width / imgWidth),
+        remainingHeight
+      );
+      pageCanvas.height = canvasHeight;
+
+      pageCtx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+      pageCtx.drawImage(
+        canvas,
+        0,
+        canvas.height - remainingHeight,
+        pageCanvas.width,
+        canvasHeight,
+        0,
+        0,
+        pageCanvas.width,
+        canvasHeight
+      );
+
+      const pageImg = pageCanvas.toDataURL("image/jpeg", 0.6);
+
+      if (pageNumber === 1) {
+        pdf.setFontSize(12);
+        pdf.text(`Generated on: ${formattedDate}`, 10, 10);
+      }
+
+      pdf.addImage(
+        pageImg,
+        "JPEG",
+        10,
+        position,
+        imgWidth,
+        canvasHeight * (imgWidth / pageCanvas.width)
+      );
+
+      pdf.setFontSize(10);
+      pdf.text(`Page ${pageNumber}`, 10, 287);
+
+      remainingHeight -= canvasHeight;
+      pageNumber++;
+
+      if (remainingHeight > 0) {
+        pdf.addPage();
+      }
+    }
+
+    const titleElement = document.getElementById("titleElement");
+    const titleText = titleElement.textContent.trim();
+    console.log("Title is:", titleElement);
+
+
+    const pdfBlob = pdf.output("blob");
+    console.log("PDF Blob created:", pdfBlob);
+
+    const formData = new FormData();
+    formData.append("file", pdfBlob, `${titleText}`);
+    formData.append("fileName", fileName);
+    formData.append("downloadedAt", new Date().toISOString());
+    console.log("hard coded by vml : " + fileName);
+
+    const response = await fetch("/api/pdf-download/internal-storage", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to upload PDF to server.");
+    }
+
+    console.log("PDF uploaded successfully.");
+    pdf.save(`${fileName}.pdf`);
+  } catch (error) {
+    console.error("Error during PDF generation/upload:", error);
+    alert("An error occurred while generating or uploading the PDF.");
+  } finally {
+    dialog.close();
+  }
+}
+
+
+         
+
+          
+function sendUrlToBackend(url, index) {
+    const responseBox = document.getElementById(`responseBox${index}`);
+
+    // Disable all buttons with class 'competitor-checkscore'
+
+    const buttons = document.querySelectorAll('.competitor-checkscore');
+    buttons.forEach(button => button.disabled = true);
+
+
+    
+    console.log("Sending URL:", url);
+
+    responseBox.innerHTML =
+        '<div class="spinner-border spinner-border-sm" role="status"><span class="sr-only">Loading...</span></div>';
+
+    fetch("/api/checkCompetitorScore", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url }),
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            console.log("Response from backend:", data);
+            responseBox.innerHTML = "Score: " + data.score;
+            buttons.forEach(button => button.disabled = false);
+
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+            responseBox.innerHTML = "Error!";
+        });
+}
+
+
+
+    document
+      .getElementById("support-to-download")
+      .addEventListener("click", function () {
+        console.log("click opened ")
+        const collapses = document.querySelectorAll(".collapse");
+        let allOpened = true;
+
+        collapses.forEach((collapse) => {
+          if (!collapse.classList.contains("show")) {
+            allOpened = false;
+            new bootstrap.Collapse(collapse).show(); 
+          }
+        });
+        const fileName = document.getElementById("titleElement").innerText;
+        console.log("Generating PDF:", fileName);
+        
+        const requestData = {
+            fileName: fileName,
+            downloadedAt: new Date().toISOString()
+        };
+        
+        const logResponse = fetch("/api/pdf-download", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestData)
+        });
+        
+        generatePDF();
+      });
+
+
+      function updateProgress(element, score) {
+        const circle = element.querySelector(".progress");
+        const text = element.querySelector(".progress-text");
+        const circumference = 2 * Math.PI * 30; // 2πr where r=30
+        const offset = circumference - (score / 100) * circumference;
+        circle.style.strokeDasharray = circumference;
+        circle.style.strokeDashoffset = offset;
+        text.textContent = score + "%";
+        circle.style.opacity = Math.min(1, 0.5 + score / 200);
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const circles = document.querySelectorAll(".progress-circle");
+
+        const fcp_Score = parseFloat(
+          document.getElementById("fcp-score").getAttribute("data-score")
+        );
+        const si_Score = parseFloat(
+          document.getElementById("si-score").getAttribute("data-score")
+        );
+        const tti_Score = parseFloat(
+          document.getElementById("tti-score").getAttribute("data-score")
+        );
+
+        const fcp_desc = 100 - fcp_Score;
+        const si_desc = 100 - si_Score;
+        const tti_desc = 100 - tti_Score;
+
+        if (fcp_desc >= 80) {
+          document.getElementById("hidden").innerHTML =
+            '<span style="color: red;"><i class="fa-solid fa-triangle-exclamation"></i> Danger Zone</span>';
+        } else if (fcp_desc >= 50 && fcp_desc < 80) {
+          document.getElementById("hidden").innerHTML =
+            '<span style="color: orange;"><i class="fa-solid fa-circle-exclamation"></i> Warning</span>';
+        } else if (fcp_desc < 50) {
+          document.getElementById("hidden").innerHTML =
+            '<span style="color: green;"><i class="fa-solid fa-circle-check"></i> Safe Zone</span>';
+        }
+
+        if (si_desc >= 80) {
+          document.getElementById("hidden-1").innerHTML =
+            '<span style="color: red;"><i class="fa-solid fa-triangle-exclamation"></i> Danger Zone</span>';
+        } else if (si_desc >= 50 && si_desc < 80) {
+          document.getElementById("hidden-1").innerHTML =
+            '<span style="color: orange;"><i class="fa-solid fa-circle-exclamation"></i> Warning</span>';
+        } else if (si_desc < 50) {
+          document.getElementById("hidden-1").innerHTML =
+            '<span style="color: green;"><i class="fa-solid fa-circle-check"></i> Safe Zone</span>';
+        }
+
+        if (tti_desc >= 80) {
+          document.getElementById("hidden-2").innerHTML =
+            '<span style="color: red;"><i class="fa-solid fa-triangle-exclamation"></i> Danger Zone</span>';
+        } else if (tti_desc >= 50 && tti_desc < 80) {
+          document.getElementById("hidden-2").innerHTML =
+            '<span style="color: orange;"><i class="fa-solid fa-circle-exclamation"></i> Warning</span>';
+        } else if (tti_desc < 50) {
+          document.getElementById("hidden-2").innerHTML =
+            '<span style="color: green;"><i class="fa-solid fa-circle-check"></i> Safe Zone</span>';
+        }
+
+        console.log(fcp_Score, si_Score, tti_Score);
+        console.log(fcp_desc, si_desc, tti_desc);
+
+        
+        setTimeout(function () {
+          updateProgress(circles[0], fcp_desc);
+          updateProgress(circles[1], si_desc);
+          updateProgress(circles[2], tti_desc);
+        }, 500);
+      });
+
+      var modal = new bootstrap.Modal(document.getElementById("imageModal"));
+
+      function showChallengeModal(imageUrl) {
+        document.getElementById("modalImage").src = imageUrl;
+        modal.show();
+      }
+
+      function closeModal() {
+        document.getElementById("modalImage").src = "";
+        modal.hide();
+      }
+    </script>
+  </body>
+</html>
