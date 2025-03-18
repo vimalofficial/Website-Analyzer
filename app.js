@@ -12,8 +12,6 @@ import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 import { getAllDocuments, getPdfById } from './mongoUtils.js';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import cors from 'cors';
-import * as chromeLauncher from 'chrome-launcher';
-import puppeteer from 'puppeteer';
 
 
 
