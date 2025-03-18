@@ -18,6 +18,8 @@ import cors from 'cors';
 import * as chromeLauncher from 'chrome-launcher';
 
 
+
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -170,31 +172,23 @@ function analyzeImageIssues(imageAudit) {
 }
 
 async function runLighthouse(url) {
-    const chrome = await launch({
-        chromeFlags: ['--headless', '--disable-dev-shm-usage']
-    });
-
-    const options = {
-        logLevel: 'info',
-        output: 'json',
-        port: chrome.port,
-        onlyCategories: ['performance'],
-        settings: {
-            formFactor: 'desktop',
-            throttling: {
-                rttMs: 40,
-                throughputKbps: 10240,
-                cpuSlowdownMultiplier: 1
-            }
-        }
-    };
+    const apiKey = 'AIzaSyB3NA9fQYOTCH4Upd51bVBT6M5HEO0Libw';
 
     try {
-        const runnerResult = await lighthouse(url, options);
-        await chrome.kill();
-        return runnerResult.lhr;
+        const response = await axios.get('https://www.googleapis.com/pagespeedonline/v5/runPagespeed', {
+            params: {
+                url: url,
+                key: apiKey,
+                category: 'performance',
+                strategy: 'desktop'
+            }
+        });
+
+        const runnerResult = response.data.lighthouseResult;
+
+        return runnerResult;  
     } catch (error) {
-        await chrome.kill();
+        console.error("Error analyzing website:", error);
         throw error;
     }
 }
@@ -209,13 +203,13 @@ async function checkTextWithEvents(url) {
         const result = await page.evaluate(() => {
             const elements = document.querySelectorAll('a, div, span');
             let findings = [];
-            
+
             elements.forEach((element) => {
                 const text = element.textContent.trim();
                 if (text) {
                     const hasOnClick = element.hasAttribute('onclick');
                     const hasHref = element.hasAttribute('href');
-                    
+
                     if (hasOnClick || hasHref) {
                         findings.push({
                             text: text,
@@ -245,12 +239,20 @@ async function checkTextWithEvents(url) {
             output = 'No text elements with onclick or href found on the page.';
         }
 
-        return output;
+       
+        const apiKey = 'AIzaSyB3NA9fQYOTCH4Upd51bVBT6M5HEO0Libw'; 
+        const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${url}&key=${apiKey}&strategy=desktop`;
+
+        const response = await axios.get(apiUrl);
+        const performanceScore = response.data.lighthouseResult.categories.performance.score * 100;
+
+
     } catch (error) {
         if (browser) await browser.close();
         throw new Error(`Error checking text: ${error.message}`);
     }
 }
+
 
 async function findMissingAltImages(url) {
     try {
@@ -321,18 +323,23 @@ app.post("/receive-msg", async (req, res) => {
 });
 
 async function competitor_runLighthouse(url) {
+    const apiKey = 'AIzaSyB3NA9fQYOTCH4Upd51bVBT6M5HEO0Libw'; 
+    const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${url}&key=${apiKey}&strategy=desktop`;
 
-    const chrome = await chromeLauncher.launch({ chromeFlags: ['--headless'] });
-    const options = { logLevel: 'info', output: 'json', port: chrome.port };
-    const runnerResult = await lighthouse(url, options);
+    try {
+        const response = await axios.get(apiUrl);
+        const performanceScore = response.data.lighthouseResult.categories.performance.score * 100;
 
-    const performanceScore = runnerResult.lhr.categories.performance.score * 100;
-    console.log(`🌐 URL: ${url}`);
-    console.log(`⚡ Performance Score: ${performanceScore}`);
+        console.log(`🌐 URL: ${url}`);
+        console.log(`⚡ Performance Score: ${performanceScore}`);
 
-    await chrome.kill();
-    return performanceScore;
+        return performanceScore;
+    } catch (error) {
+        console.error("Error analyzing website:", error.message);
+        throw error;
+    }
 }
+
 app.post('/api/checkCompetitorScore', async (req, res) => {
     try {
         const { url } = req.body;
