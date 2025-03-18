@@ -1,11 +1,8 @@
 import express from 'express';
-import { launch } from 'chrome-launcher';
-import lighthouse from 'lighthouse';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import ejs from 'ejs';
 import bodyParser from 'body-parser';
-import puppeteer from 'puppeteer';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import multer from 'multer';
@@ -16,6 +13,7 @@ import { getAllDocuments, getPdfById } from './mongoUtils.js';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import cors from 'cors';
 import * as chromeLauncher from 'chrome-launcher';
+import puppeteer from 'puppeteer';
 
 
 
@@ -193,65 +191,62 @@ async function runLighthouse(url) {
     }
 }
 
+
+import fetch from 'node-fetch';
+import { JSDOM } from 'jsdom';
+
 async function checkTextWithEvents(url) {
-    let browser;
+    const TOKEN = "RxzSlbF8Ilcy2456a6172bf9670b765738025d613b";
+    const apiUrl = `https://production-sfo.browserless.io/content?token=${TOKEN}`;
+
+    const headers = {
+        "Cache-Control": "no-cache",
+        "Content-Type": "application/json"
+    };
+
+    const data = {
+        url: url  // pass the function parameter here
+    };
+
     try {
-        browser = await puppeteer.launch({ headless: true });
-        const page = await browser.newPage();
-        await page.goto(url, { waitUntil: 'domcontentloaded' });
-
-        const result = await page.evaluate(() => {
-            const elements = document.querySelectorAll('a, div, span');
-            let findings = [];
-
-            elements.forEach((element) => {
-                const text = element.textContent.trim();
-                if (text) {
-                    const hasOnClick = element.hasAttribute('onclick');
-                    const hasHref = element.hasAttribute('href');
-
-                    if (hasOnClick || hasHref) {
-                        findings.push({
-                            text: text,
-                            hasOnClick,
-                            hasHref
-                        });
-                    }
-                }
-            });
-            return findings;
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(data)
         });
 
-        await browser.close();
+        const html = await response.text();
+        const dom = new JSDOM(html);
+        const document = dom.window.document;
 
+        const elements = document.querySelectorAll('a, div, span');
         let output = '';
-        if (result.length > 0) {
-            result.forEach(item => {
-                if (item.hasOnClick && item.hasHref) {
-                    output += `Text "${item.text}" has both onclick and href attributes.\n`;
-                } else if (item.hasOnClick) {
-                    output += `Text "${item.text}" has onclick event.\n`;
-                } else if (item.hasHref) {
-                    output += `Text "${item.text}" has href attribute.\n`;
+
+        elements.forEach((element) => {
+            const text = element.textContent.trim();
+            if (text) {
+                const hasOnClick = element.hasAttribute('onclick');
+                const hasHref = element.hasAttribute('href');
+
+                if (hasOnClick && hasHref) {
+                    output += `Text "${text}" has both onclick and href attributes.\n`;
+                } else if (hasOnClick) {
+                    output += `Text "${text}" has onclick event.\n`;
+                } else if (hasHref) {
+                    output += `Text "${text}" has href attribute.\n`;
                 }
-            });
-        } else {
-            output = 'No text elements with onclick or href found on the page.';
-        }
-
+            }
+        });
+        return output;
        
-        const apiKey = 'AIzaSyB3NA9fQYOTCH4Upd51bVBT6M5HEO0Libw'; 
-        const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${url}&key=${apiKey}&strategy=desktop`;
-
-        const response = await axios.get(apiUrl);
-        const performanceScore = response.data.lighthouseResult.categories.performance.score * 100;
-
-
-    } catch (error) {
-        if (browser) await browser.close();
-        throw new Error(`Error checking text: ${error.message}`);
+    } catch (err) {
+        console.error('Error:', err.message);
     }
 }
+
+
+
+
 
 
 async function findMissingAltImages(url) {
