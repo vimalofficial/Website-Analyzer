@@ -1,30 +1,27 @@
-import express from 'express';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import ejs from 'ejs';
-import bodyParser from 'body-parser';
-import axios from 'axios';
-import * as cheerio from 'cheerio';
-import multer from 'multer';
-import * as fs from 'fs';
-import path from 'path'; 
-import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";  
-import { getAllDocuments, getPdfById } from './mongoUtils.js';
+import express from "express";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import ejs from "ejs";
+import bodyParser from "body-parser";
+import axios from "axios";
+import * as cheerio from "cheerio";
+import multer from "multer";
+import * as fs from "fs";
+import path from "path";
+import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
+import { getAllDocuments, getPdfById } from "./mongoUtils.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import cors from 'cors';
-
-
-
+import cors from "cors";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cors());
 
-app.use(express.static('public'));
-app.set('view engine', 'ejs');
+app.use(express.static("public"));
+app.set("view engine", "ejs");
 
 let url = "";
 let title = "";
@@ -35,488 +32,494 @@ const API_KEY = "AIzaSyCDZbVGTKq7zirbovh5ussOHu3ajyRneLU";
 const genAI = new GoogleGenerativeAI(API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-
-const uri = "mongodb+srv://socialbeat:socialbeat@cluster-website.5knvo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster-website";
+const uri =
+  "mongodb+srv://socialbeat:socialbeat@cluster-website.5knvo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster-website";
 
 const client = new MongoClient(uri, {
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true,
-    },
-  });
-  
-  async function pingDatabase() {
-    try {
-      await client.connect();
-      await client.db("admin").command({ ping: 1 });
-      console.log(`[${new Date().toLocaleString()}] Ping successful!`);
-    } catch (error) {
-      console.error("MongoDB ping failed:", error);
-    }
-  }
-  setInterval(pingDatabase, 1800000);
-  
-  pingDatabase();
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+});
 
-  const storage = multer.diskStorage({
-    destination: 'uploads/',
-    filename: (req, file, cb) => {
-      const originalName = path.basename(file.originalname, path.extname(file.originalname));
-      const ext = '.pdf';
-      const safeName = originalName.replace(/[^a-zA-Z0-9_.-]/g, '');
-  
-      let finalName = `${safeName}${ext}`;
-      let counter = 1;
-  
-      while (fs.existsSync(path.join('uploads', finalName))) {
-        finalName = `${safeName}-${counter}${ext}`;
-        counter++;
-      }
-  
-      cb(null, finalName);
-      console.log("File saved as: " + finalName);
-    },
-  });
-  
-  const fileFilter = (req, file, cb) => {
-    if (file.mimetype === 'application/pdf') {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF files are allowed'), false);
+async function pingDatabase() {
+  try {
+    await client.connect();
+    await client.db("admin").command({ ping: 1 });
+    console.log(`[${new Date().toLocaleString()}] Ping successful!`);
+  } catch (error) {
+    console.error("MongoDB ping failed:", error);
+  }
+}
+setInterval(pingDatabase, 300000);
+
+pingDatabase();
+
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) => {
+    const originalName = path.basename(
+      file.originalname,
+      path.extname(file.originalname)
+    );
+    const ext = ".pdf";
+    const safeName = originalName.replace(/[^a-zA-Z0-9_.-]/g, "");
+
+    let finalName = `${safeName}${ext}`;
+    let counter = 1;
+
+    while (fs.existsSync(path.join("uploads", finalName))) {
+      finalName = `${safeName}-${counter}${ext}`;
+      counter++;
     }
-  };
-  
-  const upload = multer({ storage, fileFilter });
-  
-  app.post('/api/pdf-download/internal-storage', upload.single('file'), (req, res) => {
+
+    cb(null, finalName);
+    console.log("File saved as: " + finalName);
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype === "application/pdf") {
+    cb(null, true);
+  } else {
+    cb(new Error("Only PDF files are allowed"), false);
+  }
+};
+
+const upload = multer({ storage, fileFilter });
+
+app.post(
+  "/api/pdf-download/internal-storage",
+  upload.single("file"),
+  (req, res) => {
     if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded or invalid file type." });
+      return res
+        .status(400)
+        .json({ message: "No file uploaded or invalid file type." });
     }
     console.log(`PDF saved in the internal storage : ${req.file.filename}`);
-    res.status(200).json({ message: "File uploaded successfully", filename: req.file.filename });
-  });
+    res
+      .status(200)
+      .json({
+        message: "File uploaded successfully",
+        filename: req.file.filename,
+      });
+  }
+);
 
-  
 async function getMetaData(url) {
-    try {
-        const { data } = await axios.get(url);
-        const $ = cheerio.load(data);
+  try {
+    const { data } = await axios.get(url);
+    const $ = cheerio.load(data);
 
-        return {
-            title: $('title').text() || 'No Title Found',
-            description: $('meta[name="description"]').attr('content') || 'No Description Found',
-            keywords: $('meta[name="keywords"]').attr('content') || 'No Keywords Found',
-            author: $('meta[name="author"]').attr('content') || 'No Author Found',
-            robots: $('meta[name="robots"]').attr('content') || 'No Robots Found',
-            ogTitle: $('meta[property="og:title"]').attr('content') || 'No OG Title Found',
-            ogDescription: $('meta[property="og:description"]').attr('content') || 'No OG Description Found',
-            ogImage: $('meta[property="og:image"]').attr('content') || 'No OG Image Found',
-            ogUrl: $('meta[property="og:url"]').attr('content') || 'No OG URL Found'
-        };
-    } catch (error) {
-        console.error('Error fetching metadata:', error.message);
-        throw error;
-    }
+    return {
+      title: $("title").text() || "No Title Found",
+      description:
+        $('meta[name="description"]').attr("content") || "No Description Found",
+      keywords:
+        $('meta[name="keywords"]').attr("content") || "No Keywords Found",
+      author: $('meta[name="author"]').attr("content") || "No Author Found",
+      robots: $('meta[name="robots"]').attr("content") || "No Robots Found",
+      ogTitle:
+        $('meta[property="og:title"]').attr("content") || "No OG Title Found",
+      ogDescription:
+        $('meta[property="og:description"]').attr("content") ||
+        "No OG Description Found",
+      ogImage:
+        $('meta[property="og:image"]').attr("content") || "No OG Image Found",
+      ogUrl: $('meta[property="og:url"]').attr("content") || "No OG URL Found",
+    };
+  } catch (error) {
+    console.error("Error fetching metadata:", error.message);
+    throw error;
+  }
 }
 
 function getSuggestions(metric, value) {
-    const suggestions = {
-        performance: {
-            low: "Focus on optimizing images, minimizing JavaScript, and leveraging browser caching.",
-            medium: "Consider implementing lazy loading and optimizing critical rendering path.",
-            high: "Great performance! Monitor and maintain current optimizations."
-        },
-        fcp: {
-            low: "Reduce server response time and minimize render-blocking resources.",
-            medium: "Optimize CSS delivery and server-side rendering.",
-            high: "First Contentful Paint is well optimized."
-        },
-        si: {
-            low: "Improve page load performance and reduce initial server response time.",
-            medium: "Consider implementing progressive rendering techniques.",
-            high: "Speed Index is performing well."
-        },
-        tti: {
-            low: "Reduce JavaScript execution time and minimize main thread work.",
-            medium: "Optimize JavaScript bundles and consider code splitting.",
-            high: "Time to Interactive is well optimized."
-        }
-    };
+  const suggestions = {
+    performance: {
+      low: "Focus on optimizing images, minimizing JavaScript, and leveraging browser caching.",
+      medium:
+        "Consider implementing lazy loading and optimizing critical rendering path.",
+      high: "Great performance! Monitor and maintain current optimizations.",
+    },
+    fcp: {
+      low: "Reduce server response time and minimize render-blocking resources.",
+      medium: "Optimize CSS delivery and server-side rendering.",
+      high: "First Contentful Paint is well optimized.",
+    },
+    si: {
+      low: "Improve page load performance and reduce initial server response time.",
+      medium: "Consider implementing progressive rendering techniques.",
+      high: "Speed Index is performing well.",
+    },
+    tti: {
+      low: "Reduce JavaScript execution time and minimize main thread work.",
+      medium: "Optimize JavaScript bundles and consider code splitting.",
+      high: "Time to Interactive is well optimized.",
+    },
+  };
 
-    if (value < 50) return suggestions[metric].low;
-    if (value < 90) return suggestions[metric].medium;
-    return suggestions[metric].high;
+  if (value < 50) return suggestions[metric].low;
+  if (value < 90) return suggestions[metric].medium;
+  return suggestions[metric].high;
 }
 
 function analyzeImageIssues(imageAudit) {
-    const issues = [];
-    if (!imageAudit.details || !imageAudit.details.items) return issues;
+  const issues = [];
+  if (!imageAudit.details || !imageAudit.details.items) return issues;
 
-    imageAudit.details.items.forEach(item => {
-        if (item.wastedBytes > 0) {
-            issues.push({
-                url: item.url,
-                wastedBytes: item.wastedBytes,
-                totalBytes: item.totalBytes,
-                potentialSavings: ((item.wastedBytes / item.totalBytes) * 100).toFixed(1) + '%'
-            });
-        }
-    });
+  imageAudit.details.items.forEach((item) => {
+    if (item.wastedBytes > 0) {
+      issues.push({
+        url: item.url,
+        wastedBytes: item.wastedBytes,
+        totalBytes: item.totalBytes,
+        potentialSavings:
+          ((item.wastedBytes / item.totalBytes) * 100).toFixed(1) + "%",
+      });
+    }
+  });
 
-    return issues;
+  return issues;
 }
 
 async function runLighthouse(url) {
-    const apiKey = 'AIzaSyB3NA9fQYOTCH4Upd51bVBT6M5HEO0Libw';
+  const apiKey = "AIzaSyB3NA9fQYOTCH4Upd51bVBT6M5HEO0Libw";
 
-    try {
-        const response = await axios.get('https://www.googleapis.com/pagespeedonline/v5/runPagespeed', {
-            params: {
-                url: url,
-                key: apiKey,
-                category: 'performance',
-                strategy: 'desktop'
-            }
-        });
+  try {
+    const response = await axios.get(
+      "https://www.googleapis.com/pagespeedonline/v5/runPagespeed",
+      {
+        params: {
+          url: url,
+          key: apiKey,
+          category: "performance",
+          strategy: "desktop",
+        },
+      }
+    );
 
-        const runnerResult = response.data.lighthouseResult;
+    const runnerResult = response.data.lighthouseResult;
 
-        return runnerResult;  
-    } catch (error) {
-        console.error("Error analyzing website:", error);
-        throw error;
-    }
+    return runnerResult;
+  } catch (error) {
+    console.error("Error analyzing website:", error);
+    throw error;
+  }
 }
 
-
-import fetch from 'node-fetch';
-import { JSDOM } from 'jsdom';
+import fetch from "node-fetch";
+import { JSDOM } from "jsdom";
 
 async function checkTextWithEvents(url) {
-    const TOKEN = "RxzSlbF8Ilcy2456a6172bf9670b765738025d613b";
-    const apiUrl = `https://production-sfo.browserless.io/content?token=${TOKEN}`;
+  const TOKEN = "RxzSlbF8Ilcy2456a6172bf9670b765738025d613b";
+  const apiUrl = `https://production-sfo.browserless.io/content?token=${TOKEN}`;
 
-    const headers = {
-        "Cache-Control": "no-cache",
-        "Content-Type": "application/json"
-    };
+  const headers = {
+    "Cache-Control": "no-cache",
+    "Content-Type": "application/json",
+  };
 
-    const data = {
-        url: url  // pass the function parameter here
-    };
+  const data = {
+    url: url, // pass the function parameter here
+  };
 
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(data)
-        });
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(data),
+    });
 
-        const html = await response.text();
-        const dom = new JSDOM(html);
-        const document = dom.window.document;
+    const html = await response.text();
+    const dom = new JSDOM(html);
+    const document = dom.window.document;
 
-        const elements = document.querySelectorAll('a, div, span');
-        let output = '';
+    const elements = document.querySelectorAll("a, div, span");
+    let output = "";
 
-        elements.forEach((element) => {
-            const text = element.textContent.trim();
-            if (text) {
-                const hasOnClick = element.hasAttribute('onclick');
-                const hasHref = element.hasAttribute('href');
+    elements.forEach((element) => {
+      const text = element.textContent.trim();
+      if (text) {
+        const hasOnClick = element.hasAttribute("onclick");
+        const hasHref = element.hasAttribute("href");
 
-                if (hasOnClick && hasHref) {
-                    output += `Text "${text}" has both onclick and href attributes.\n`;
-                } else if (hasOnClick) {
-                    output += `Text "${text}" has onclick event.\n`;
-                } else if (hasHref) {
-                    output += `Text "${text}" has href attribute.\n`;
-                }
-            }
-        });
-        return output;
-       
-    } catch (err) {
-        console.error('Error:', err.message);
-    }
+        if (hasOnClick && hasHref) {
+          output += `Text "${text}" has both onclick and href attributes.\n`;
+        } else if (hasOnClick) {
+          output += `Text "${text}" has onclick event.\n`;
+        } else if (hasHref) {
+          output += `Text "${text}" has href attribute.\n`;
+        }
+      }
+    });
+    return output;
+  } catch (err) {
+    console.error("Error:", err.message);
+  }
 }
 
-
-
-
-
-
 async function findMissingAltImages(url) {
-    try {
-        const { data } = await axios.get(url);
-        const $ = cheerio.load(data);
-        let missingAltImages = [];
+  try {
+    const { data } = await axios.get(url);
+    const $ = cheerio.load(data);
+    let missingAltImages = [];
 
-        $('img').each((index, img) => {
-            const altText = $(img).attr('alt');
-            if (!altText || altText.trim() === '') {
-                let attributes = {};
-                Object.keys(img.attribs).forEach(attr => {
-                    attributes[attr] = img.attribs[attr];
-                });
-                missingAltImages.push(attributes);
-            }
+    $("img").each((index, img) => {
+      const altText = $(img).attr("alt");
+      if (!altText || altText.trim() === "") {
+        let attributes = {};
+        Object.keys(img.attribs).forEach((attr) => {
+          attributes[attr] = img.attribs[attr];
         });
+        missingAltImages.push(attributes);
+      }
+    });
 
-        return missingAltImages;
-    } catch (error) {
-        console.error('❌ Error fetching the webpage:', error.message);
-        return [];
-    }
+    return missingAltImages;
+  } catch (error) {
+    console.error("❌ Error fetching the webpage:", error.message);
+    return [];
+  }
 }
 
 async function savePDFToMongoDB(fileName, downloadedAt) {
-    const saveclient = new MongoClient(uri);
+  const saveclient = new MongoClient(uri);
 
-    try {
-        await saveclient.connect();
-        console.log("✅ Connected to MongoDB Atlas");
+  try {
+    await saveclient.connect();
+    console.log("✅ Connected to MongoDB Atlas");
 
-        const database = saveclient.db("document");
-        const collection = database.collection("tech-team");
+    const database = saveclient.db("document");
+    const collection = database.collection("tech-team");
 
-        const document = {
-            fileName,
-            downloadedAt,
-            createdAt: new Date(),
-        };
+    const document = {
+      fileName,
+      downloadedAt,
+      createdAt: new Date(),
+    };
 
-        const result = await collection.insertOne(document);
-        console.log(`✅ PDF metadata inserted. ID: ${result.insertedId}`);
+    const result = await collection.insertOne(document);
+    console.log(`✅ PDF metadata inserted. ID: ${result.insertedId}`);
 
-        return result.insertedId;
-    } catch (err) {
-        console.error("❌ Error saving PDF metadata to MongoDB:", err);
-        throw err;
-    } 
+    return result.insertedId;
+  } catch (err) {
+    console.error("❌ Error saving PDF metadata to MongoDB:", err);
+    throw err;
+  }
 }
 
-
-app.get('/', (req, res) => {
-    res.render('index');
+app.get("/", (req, res) => {
+  res.render("index");
 });
 
-
 app.post("/receive-msg", async (req, res) => {
-    try {
-        const userInput = req.body.userInput;
-        const result = await model.generateContent(JSON.stringify(userInput));
-        const responseText = await result.response.text();
-        res.json({ success: true, reply: responseText });
-    } catch (error) {
-        console.error("Error generating response:", error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
+  try {
+    const userInput = req.body.userInput;
+    const result = await model.generateContent(JSON.stringify(userInput));
+    const responseText = await result.response.text();
+    res.json({ success: true, reply: responseText });
+  } catch (error) {
+    console.error("Error generating response:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
 });
 
 async function competitor_runLighthouse(url) {
-    const apiKey = 'AIzaSyB3NA9fQYOTCH4Upd51bVBT6M5HEO0Libw'; 
-    const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${url}&key=${apiKey}&strategy=desktop`;
+  const apiKey = "AIzaSyB3NA9fQYOTCH4Upd51bVBT6M5HEO0Libw";
+  const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${url}&key=${apiKey}&strategy=desktop`;
 
-    try {
-        const response = await axios.get(apiUrl);
-        const performanceScore = response.data.lighthouseResult.categories.performance.score * 100;
+  try {
+    const response = await axios.get(apiUrl);
+    const performanceScore =
+      response.data.lighthouseResult.categories.performance.score * 100;
 
-        console.log(`🌐 URL: ${url}`);
-        console.log(`⚡ Performance Score: ${performanceScore}`);
+    console.log(`🌐 URL: ${url}`);
+    console.log(`⚡ Performance Score: ${performanceScore}`);
 
-        return performanceScore;
-    } catch (error) {
-        console.error("Error analyzing website:", error.message);
-        throw error;
-    }
+    return performanceScore;
+  } catch (error) {
+    console.error("Error analyzing website:", error.message);
+    throw error;
+  }
 }
 
-app.post('/api/checkCompetitorScore', async (req, res) => {
-    try {
-        const { url } = req.body;
+app.post("/api/checkCompetitorScore", async (req, res) => {
+  try {
+    const { url } = req.body;
 
-        console.log("Received URL:", url);
+    console.log("Received URL:", url);
 
+    const competitor_runLight_value = await competitor_runLighthouse(url);
 
-        const competitor_runLight_value = await competitor_runLighthouse(url); 
-
-        
-        res.json({ score: competitor_runLight_value });
-
-    } catch (error) {
-        console.error("Error running Lighthouse:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-});
-    
-
-app.post('/analyze', async (req, res) => {
-    try {
-        url = req.body.websiteUrl;
-        console.log(`Analyzing website: ${url}`);
-        
-        const [report, puppeteerResult, metadata] = await Promise.all([
-            runLighthouse(url),
-            checkTextWithEvents(url),
-            getMetaData(url)
-        ]);
-        
-        const performanceScore = report.categories.performance.score * 100;
-        const fcpScore = report.audits['first-contentful-paint'].score * 100;
-        const siScore = report.audits['speed-index'].score * 100;
-        const ttiScore = report.audits['interactive'].score * 100;
-
-        const imageAudits = {
-            'modern-image-formats': {
-                ...report.audits['modern-image-formats'],
-                issues: analyzeImageIssues(report.audits['modern-image-formats']),
-                suggestions: [
-                    "Convert images to WebP format",
-                    "Use AVIF for next-gen optimization",
-                    "Implement picture element for fallback support"
-                ]
-            },
-            'uses-responsive-images': {
-                ...report.audits['uses-responsive-images'],
-                issues: analyzeImageIssues(report.audits['uses-responsive-images']),
-                suggestions: [
-                    "Implement srcset and sizes attributes",
-                    "Serve different image sizes for different devices",
-                    "Use responsive images for art direction"
-                ]
-            }
-        };
-
-        const suggestions = {
-            performance: getSuggestions('performance', performanceScore),
-            fcp: getSuggestions('fcp', fcpScore),
-            si: getSuggestions('si', siScore),
-            tti: getSuggestions('tti', ttiScore)
-        };
-
-        const missingAltImages = await findMissingAltImages(url);
-
-        let aidata = { url, title, description, keywords };
-        const prompt = `Based on the website data: ${JSON.stringify(aidata)}, provide a competitor analysis and list 10 real, active competitor website URLs as clean, clickable hyperlinks, ensuring they are valid and publicly accessible without extra characters or formatting. dont prvide the same url which im providing`;
-        
-        const result = await model.generateContent(prompt);
-        const responseText = await result.response.text();
-
-        res.render('result', {
-            url,
-            metadata,
-            performanceScore,
-            firstContentfulPaint: report.audits['first-contentful-paint'].displayValue,
-            speedIndex: report.audits['speed-index'].displayValue,
-            timeToInteractive: report.audits['interactive'].displayValue,
-            imageAudits,
-            suggestions,
-            puppeteerResult,
-            missingAltImages,
-            responseText,
-            metrics: {
-                fcp: {
-                    score: fcpScore,
-                    value: report.audits['first-contentful-paint'].displayValue
-                },
-                si: {
-                    score: siScore,
-                    value: report.audits['speed-index'].displayValue
-                },
-                tti: {
-                    score: ttiScore,
-                    value: report.audits['interactive'].displayValue
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Error analyzing website:', error);
-        res.render('result', {
-            url: req.body.websiteUrl,
-            error: 'Failed to analyze the website. Please check the URL and try again.'
-        });
-    }
+    res.json({ score: competitor_runLight_value });
+  } catch (error) {
+    console.error("Error running Lighthouse:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
+app.post("/analyze", async (req, res) => {
+  try {
+    url = req.body.websiteUrl;
+    console.log(`Analyzing website: ${url}`);
+
+    const [report, puppeteerResult, metadata] = await Promise.all([
+      runLighthouse(url),
+      checkTextWithEvents(url),
+      getMetaData(url),
+    ]);
+
+    const performanceScore = report.categories.performance.score * 100;
+    const fcpScore = report.audits["first-contentful-paint"].score * 100;
+    const siScore = report.audits["speed-index"].score * 100;
+    const ttiScore = report.audits["interactive"].score * 100;
+
+    const imageAudits = {
+      "modern-image-formats": {
+        ...report.audits["modern-image-formats"],
+        issues: analyzeImageIssues(report.audits["modern-image-formats"]),
+        suggestions: [
+          "Convert images to WebP format",
+          "Use AVIF for next-gen optimization",
+          "Implement picture element for fallback support",
+        ],
+      },
+      "uses-responsive-images": {
+        ...report.audits["uses-responsive-images"],
+        issues: analyzeImageIssues(report.audits["uses-responsive-images"]),
+        suggestions: [
+          "Implement srcset and sizes attributes",
+          "Serve different image sizes for different devices",
+          "Use responsive images for art direction",
+        ],
+      },
+    };
+
+    const suggestions = {
+      performance: getSuggestions("performance", performanceScore),
+      fcp: getSuggestions("fcp", fcpScore),
+      si: getSuggestions("si", siScore),
+      tti: getSuggestions("tti", ttiScore),
+    };
+
+    const missingAltImages = await findMissingAltImages(url);
+
+    let aidata = { url, title, description, keywords };
+    const prompt = `Based on the website data: ${JSON.stringify(
+      aidata
+    )}, provide a competitor analysis and list 10 real, active competitor website URLs as clean, clickable hyperlinks, ensuring they are valid and publicly accessible without extra characters or formatting. dont prvide the same url which im providing`;
+
+    const result = await model.generateContent(prompt);
+    const responseText = await result.response.text();
+
+    res.render("result", {
+      url,
+      metadata,
+      performanceScore,
+      firstContentfulPaint:
+        report.audits["first-contentful-paint"].displayValue,
+      speedIndex: report.audits["speed-index"].displayValue,
+      timeToInteractive: report.audits["interactive"].displayValue,
+      imageAudits,
+      suggestions,
+      puppeteerResult,
+      missingAltImages,
+      responseText,
+      metrics: {
+        fcp: {
+          score: fcpScore,
+          value: report.audits["first-contentful-paint"].displayValue,
+        },
+        si: {
+          score: siScore,
+          value: report.audits["speed-index"].displayValue,
+        },
+        tti: {
+          score: ttiScore,
+          value: report.audits["interactive"].displayValue,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error analyzing website:", error);
+    res.render("result", {
+      url: req.body.websiteUrl,
+      error:
+        "Failed to analyze the website. Please check the URL and try again.",
+    });
+  }
+});
 
 app.post("/api/pdf-download", async (req, res) => {
-    try {
-        const { fileName, downloadedAt } = req.body; 
+  try {
+    const { fileName, downloadedAt } = req.body;
 
-        const insertedId = await savePDFToMongoDB(fileName, downloadedAt);
-        res.status(201).json({ success: true, insertedId });
-    } catch (error) {
-        res.status(500).json({ error: "Internal Server Error" });
-    }
+    const insertedId = await savePDFToMongoDB(fileName, downloadedAt);
+    res.status(201).json({ success: true, insertedId });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
-
-
-app.get('/view-data', async (req, res) => {
-    try {
-        const documents = await getAllDocuments();
-        res.render('db', { records: documents });
-    } catch (error) {
-        res.status(500).send('Error fetching data: ' + error.message);
-    }
+app.get("/view-data", async (req, res) => {
+  try {
+    const documents = await getAllDocuments();
+    res.render("db", { records: documents });
+  } catch (error) {
+    res.status(500).send("Error fetching data: " + error.message);
+  }
 });
 
-
-
-app.get('/view-pdf/:id/:field', async (req, res) => {
-    try {
-        const document = await getPdfById(req.params.id);
-        if (!document || !document[req.params.field]) {
-            return res.status(404).send('PDF not found');
-        }
-
-        const pdfData = document[req.params.field];
-        const filename = document.filename || 'document.pdf';
-        
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-        
-        res.send(pdfData.buffer || pdfData);
-    } catch (error) {
-        res.status(500).send('Error fetching PDF: ' + error.message);
+app.get("/view-pdf/:id/:field", async (req, res) => {
+  try {
+    const document = await getPdfById(req.params.id);
+    if (!document || !document[req.params.field]) {
+      return res.status(404).send("PDF not found");
     }
-});
 
+    const pdfData = document[req.params.field];
+    const filename = document.filename || "document.pdf";
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+
+    res.send(pdfData.buffer || pdfData);
+  } catch (error) {
+    res.status(500).send("Error fetching PDF: " + error.message);
+  }
+});
 
 const deleteclient = new MongoClient(uri);
 
 app.delete("/delete/:id", async (req, res) => {
-    try {
-        await deleteclient.connect();
-        console.log("✅ Connected to MongoDB Atlas");
+  try {
+    await deleteclient.connect();
+    console.log("✅ Connected to MongoDB Atlas");
 
-        const database = client.db("document");
-        const collection = database.collection("tech-team");
+    const database = client.db("document");
+    const collection = database.collection("tech-team");
 
-        const recordId = req.params.id; 
-        console.log("Deleting Record with ID:", recordId);
+    const recordId = req.params.id;
+    console.log("Deleting Record with ID:", recordId);
 
-        const result = await collection.deleteOne({ _id: new ObjectId(recordId) });
+    const result = await collection.deleteOne({ _id: new ObjectId(recordId) });
 
-        if (result.deletedCount === 1) {
-            console.log(`✅ Record with ID ${recordId} deleted successfully.`);
-            res.json({ message: `Record with ID ${recordId} deleted.` });
-        } else {
-            console.log("❌ Record not found.");
-            res.status(404).json({ message: "Record not found." });
-        }
-    } catch (err) {
-        console.error("❌ Error deleting record:", err);
-        res.status(500).json({ error: "Internal Server Error" });
+    if (result.deletedCount === 1) {
+      console.log(`✅ Record with ID ${recordId} deleted successfully.`);
+      res.json({ message: `Record with ID ${recordId} deleted.` });
+    } else {
+      console.log("❌ Record not found.");
+      res.status(404).json({ message: "Record not found." });
     }
+  } catch (err) {
+    console.error("❌ Error deleting record:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
-
-
-
 
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
-
