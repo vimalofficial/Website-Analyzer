@@ -28,9 +28,14 @@ let title = "";
 let description = "";
 let keywords = "";
 
-const API_KEY = "AIzaSyCDZbVGTKq7zirbovh5ussOHu3ajyRneLU";
+
+
+
+// const API_KEY = "AIzaSyCDZbVGTKq7zirbovh5ussOHu3ajyRneLU";
+const API_KEY = "AIzaSyBUk_1zFdp8zREJs0Vw_LeYGB04d06dv2U";
 const genAI = new GoogleGenerativeAI(API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+// const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 const uri =
   "mongodb+srv://socialbeat:socialbeat@cluster-website.5knvo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster-website";
@@ -42,6 +47,19 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+async function getModelByName() {
+  try {
+    const models = await genAI.listModels();
+    console.log(models, "vml");
+  } catch (error) {
+    console.error("Error fetching models:", error);
+  }
+}
+
+getModelByName();
+
+
 
 async function pingDatabase() {
   try {
@@ -56,28 +74,31 @@ setInterval(pingDatabase, 300000);
 
 pingDatabase();
 
-const storage = multer.diskStorage({
-  destination: "uploads/",
-  filename: (req, file, cb) => {
-    const originalName = path.basename(
-      file.originalname,
-      path.extname(file.originalname)
-    );
-    const ext = ".pdf";
-    const safeName = originalName.replace(/[^a-zA-Z0-9_.-]/g, "");
+const storage = multer.memoryStorage();
 
-    let finalName = `${safeName}${ext}`;
-    let counter = 1;
 
-    while (fs.existsSync(path.join("uploads", finalName))) {
-      finalName = `${safeName}-${counter}${ext}`;
-      counter++;
-    }
+// const storage = multer.diskStorage({
+//   destination: "uploads/",
+//   filename: (req, file, cb) => {
+//     const originalName = path.basename(
+//       file.originalname,
+//       path.extname(file.originalname)
+//     );
+//     const ext = ".pdf";
+//     const safeName = originalName.replace(/[^a-zA-Z0-9_.-]/g, "");
 
-    cb(null, finalName);
-    console.log("File saved as: " + finalName);
-  },
-});
+//     let finalName = `${safeName}${ext}`;
+//     let counter = 1;
+
+//     while (fs.existsSync(path.join("uploads", finalName))) {
+//       finalName = `${safeName}-${counter}${ext}`;
+//       counter++;
+//     }
+
+//     cb(null, finalName);
+//     console.log("File saved as: not saved not saved " + finalName);
+//   },
+// });
 
 const fileFilter = (req, file, cb) => {
   if (file.mimetype === "application/pdf") {
@@ -166,9 +187,32 @@ function getSuggestions(metric, value) {
   return suggestions[metric].high;
 }
 
+// function analyzeImageIssues(imageAudit) {
+//   const issues = [];
+//   if (!imageAudit.details || !imageAudit.details.items) return issues;
+
+//   imageAudit.details.items.forEach((item) => {
+//     if (item.wastedBytes > 0) {
+//       issues.push({
+//         url: item.url,
+//         wastedBytes: item.wastedBytes,
+//         totalBytes: item.totalBytes,
+//         potentialSavings:
+//           ((item.wastedBytes / item.totalBytes) * 100).toFixed(1) + "%",
+//       });
+//     }
+//   });
+
+//   return issues;
+// }
+
+
 function analyzeImageIssues(imageAudit) {
   const issues = [];
-  if (!imageAudit.details || !imageAudit.details.items) return issues;
+
+  if (!imageAudit || !imageAudit.details || !imageAudit.details.items) {
+    return issues;
+  }
 
   imageAudit.details.items.forEach((item) => {
     if (item.wastedBytes > 0) {
@@ -177,13 +221,14 @@ function analyzeImageIssues(imageAudit) {
         wastedBytes: item.wastedBytes,
         totalBytes: item.totalBytes,
         potentialSavings:
-          ((item.wastedBytes / item.totalBytes) * 100).toFixed(1) + "%",
+          ((item.wastedBytes / item.totalBytes) * 100).toFixed(1) + "%"
       });
     }
   });
 
   return issues;
 }
+
 
 async function runLighthouse(url) {
   const apiKey = "AIzaSyB3NA9fQYOTCH4Upd51bVBT6M5HEO0Libw";
@@ -212,6 +257,7 @@ async function runLighthouse(url) {
 
 import fetch from "node-fetch";
 import { JSDOM } from "jsdom";
+import { get } from "http";
 
 async function checkTextWithEvents(url) {
   const TOKEN = "RxzSlbF8Ilcy2456a6172bf9670b765738025d613b";
